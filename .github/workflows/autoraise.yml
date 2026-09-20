@@ -49,3 +49,22 @@ jobs:
                 if chat.get("id"):
                     print(f"CHAT_ID={chat['id']}")
             PY
+        - name: Get Telegram Chat ID
+          env:
+            TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          run: |
+            python - <<'PY'
+            import os
+            import requests
+
+            token = os.environ["TELEGRAM_TOKEN"]
+            data = requests.get(
+                f"https://api.telegram.org/bot{token}/getUpdates",
+                timeout=15
+            ).json()
+
+            for update in data.get("result", []):
+                chat = update.get("message", {}).get("chat", {})
+                if chat.get("id"):
+                    print(f"CHAT_ID={chat['id']}")
+            PY
