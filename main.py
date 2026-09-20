@@ -8,8 +8,6 @@ from FunPayAPI.common.exceptions import RaiseError
 
 FUNPAY_KEY = os.environ["FUNPAY_GOLDEN_KEY"]
 TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
-
-# Твой Telegram Chat ID
 TELEGRAM_CHAT_ID = "5722635717"
 
 
@@ -17,7 +15,7 @@ def telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
     try:
-        response = requests.post(
+        r = requests.post(
             url,
             json={
                 "chat_id": TELEGRAM_CHAT_ID,
@@ -26,14 +24,11 @@ def telegram(message):
             timeout=15
         )
 
-        if not response.ok:
-            print(
-                f"⚠️ Telegram error: {response.text}",
-                flush=True
-            )
+        if not r.ok:
+            print(f"Telegram error: {r.text}", flush=True)
 
     except Exception as e:
-        print(f"⚠️ Telegram error: {e}", flush=True)
+        print(f"Telegram error: {e}", flush=True)
 
 
 print("🔐 Подключаюсь к FunPay...", flush=True)
@@ -45,25 +40,14 @@ account = Account(
 
 account.get()
 
-print(
-    f"✅ Авторизация: {account.username}",
-    flush=True
-)
+print(f"✅ Авторизация: {account.username}", flush=True)
 
 
-# ─────────────────────────────
-# Баланс и продажи
-# ─────────────────────────────
-
+# Информация аккаунта
 balance = account.total_balance or 0
 currency = str(account.currency)
-
 sales = account.active_sales or 0
 
-
-# ─────────────────────────────
-# Автоподнятие
-# ─────────────────────────────
 
 checked = 0
 raised = 0
@@ -71,6 +55,7 @@ wait_seconds = None
 errors = []
 
 
+# Проверяем категории
 for category in account.categories:
 
     print(
@@ -85,7 +70,7 @@ for category in account.categories:
         raised += 1
 
         print(
-            f"✅ Поднято: {category.name}",
+            f"✅ Лоты подняты: {category.name}",
             flush=True
         )
 
@@ -95,18 +80,16 @@ for category in account.categories:
 
             seconds = int(e.wait_time)
 
-            if (
-                wait_seconds is None
-                or seconds < wait_seconds
-            ):
+            if wait_seconds is None:
+                wait_seconds = seconds
+            elif seconds < wait_seconds:
                 wait_seconds = seconds
 
             hours = seconds // 3600
             minutes = (seconds % 3600) // 60
 
             print(
-                f"⏳ {category.name}: "
-                f"{hours} ч. {minutes} мин.",
+                f"⏳ Осталось: {hours} ч. {minutes} мин.",
                 flush=True
             )
 
@@ -119,8 +102,7 @@ for category in account.categories:
     except Exception as e:
 
         errors.append(
-            f"{category.name}: "
-            f"{type(e).__name__}: {e}"
+            f"{category.name}: {type(e).__name__}: {e}"
         )
 
     checked += 1
@@ -128,29 +110,24 @@ for category in account.categories:
     time.sleep(2)
 
 
-# ─────────────────────────────
-# Время следующего поднятия
-# ─────────────────────────────
-
+# Следующее поднятие
 if wait_seconds is not None:
 
     hours = wait_seconds // 3600
     minutes = (wait_seconds % 3600) // 60
 
     if hours > 0:
-        next_raise = f"через {hours} ч. {minutes} мин."
+        next_raise = (
+            f"через {hours} ч. {minutes} мин."
+        )
     else:
         next_raise = f"через {minutes} мин."
 
 else:
-
     next_raise = "примерно через 2 ч."
 
 
-# ─────────────────────────────
 # Статус
-# ─────────────────────────────
-
 if raised > 0:
 
     status = "✅ Автоподнятие готово"
@@ -164,24 +141,25 @@ else:
     status = "⚠️ Автоподнятие не выполнено"
 
 
-# ─────────────────────────────
-# Одно сообщение в Telegram
-# ─────────────────────────────
-
+# Одно сообщение
 message = (
     "🤖 FunPay AutoRaise\n\n"
     f"👤 Аккаунт: {account.username}\n"
     f"💰 Баланс: {balance} {currency}\n"
     f"🛒 Активные продажи: {sales}\n\n"
     f"{status}\n"
-    f"⏱️ Следующее поднятие: {next_raise}\n\n"
-    f"📂 Проверено категорий: {checked}\n"
-    f"✅ Поднято категорий: {raised}"
+    f"⏱ Следующее поднятие: {next_raise}\n\n"
+    f"📂 Проверено категорий: {checked}"
 )
 
 
-if errors:
+if raised > 0:
+    message += (
+        f"\n✅ Поднято категорий: {raised}"
+    )
 
+
+if errors:
     message += (
         f"\n⚠️ Ошибок: {len(errors)}"
     )
@@ -189,7 +167,4 @@ if errors:
 
 telegram(message)
 
-print(
-    "\n🏁 Проверка завершена.",
-    flush=True
-)
+print("🏁 Готово.", flush=True)
