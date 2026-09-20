@@ -1,0 +1,29 @@
+name: FunPay AutoRaise
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */2 * * *"
+
+jobs:
+  autoraise:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FunPayAPI
+        run: |
+          python -m pip install --upgrade pip
+          pip install git+https://github.com/MorikTV/FunPayAPI.git
+
+      - name: Run AutoRaise
+        env:
+          FUNPAY_GOLDEN_KEY: ${{ secrets.FUNPAY_GOLDEN_KEY }}
+        run: python main.py
