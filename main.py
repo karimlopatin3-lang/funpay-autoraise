@@ -17,36 +17,46 @@ account = Account(
 account.get()
 
 print(f"✅ Авторизация: {account.username}", flush=True)
-print(f"📂 Категорий: {len(account.categories)}", flush=True)
+print(f"📂 Найдено категорий: {len(account.categories)}", flush=True)
 
 for category in account.categories:
-    print(f"⬆️ Пытаюсь поднять: {category.name}", flush=True)
+    print(f"\n⬆️ Проверяю: {category.name}", flush=True)
 
     try:
         account.raise_lots(category.id)
-        print(f"✅ Поднято: {category.name}", flush=True)
+        print(f"✅ Поднятие выполнено: {category.name}", flush=True)
 
     except RaiseError as e:
         if e.wait_time is not None:
+            seconds = int(e.wait_time)
+            hours = seconds // 3600
+            minutes = (seconds % 3600) // 60
+
             print(
-                f"⏳ FunPay пока не разрешает поднятие "
-                f"'{category.name}'. Осталось примерно {e.wait_time} сек.",
+                f"⏳ Поднятие пока недоступно: {category.name}",
+                flush=True
+            )
+            print(
+                f"🕐 Осталось примерно: {hours} ч. {minutes} мин. "
+                f"({seconds} сек.)",
                 flush=True
             )
         else:
             print(
-                f"⚠️ FunPay отклонил поднятие '{category.name}': "
+                f"⚠️ FunPay отклонил поднятие: "
                 f"{e.error_message}",
                 flush=True
             )
 
     except Exception as e:
         print(
-            f"❌ Ошибка '{category.name}': "
+            f"❌ Ошибка в '{category.name}': "
             f"{type(e).__name__}: {e}",
             flush=True
         )
 
     time.sleep(2)
 
-print("🏁 Тест поднятия завершён.", flush=True)
+print("\n🏁 Проверка завершена.", flush=True)
+
+            
