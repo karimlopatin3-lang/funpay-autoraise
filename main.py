@@ -5,6 +5,7 @@ import requests
 from FunPayAPI import Account
 from FunPayAPI.common.exceptions import RaiseError
 
+
 FUNPAY_KEY = os.environ["FUNPAY_GOLDEN_KEY"]
 TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
 
@@ -16,7 +17,7 @@ def telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
     try:
-        requests.post(
+        response = requests.post(
             url,
             json={
                 "chat_id": TELEGRAM_CHAT_ID,
@@ -24,8 +25,15 @@ def telegram(message):
             },
             timeout=15
         )
+
+        if not response.ok:
+            print(
+                f"⚠️ Telegram error: {response.text}",
+                flush=True
+            )
+
     except Exception as e:
-        print(f"Telegram error: {e}", flush=True)
+        print(f"⚠️ Telegram error: {e}", flush=True)
 
 
 print("🔐 Подключаюсь к FunPay...", flush=True)
@@ -37,24 +45,47 @@ account = Account(
 
 account.get()
 
-print(f"✅ Авторизация: {account.username}", flush=True)
+print(
+    f"✅ Авторизация: {account.username}",
+    flush=True
+)
+
+
+# ─────────────────────────────
+# Баланс и продажи
+# ─────────────────────────────
+
+balance = account.total_balance or 0
+currency = str(account.currency)
+
+sales = account.active_sales or 0
+
+
+# ─────────────────────────────
+# Автоподнятие
+# ─────────────────────────────
 
 checked = 0
 raised = 0
 wait_seconds = None
 errors = []
 
+
 for category in account.categories:
 
-    print(f"⬆️ Проверяю: {category.name}", flush=True)
+    print(
+        f"⬆️ Проверяю: {category.name}",
+        flush=True
+    )
 
     try:
+
         account.raise_lots(category.id)
 
         raised += 1
 
         print(
-            f"✅ Лоты подняты: {category.name}",
+            f"✅ Поднято: {category.name}",
             flush=True
         )
 
@@ -64,7 +95,10 @@ for category in account.categories:
 
             seconds = int(e.wait_time)
 
-            if wait_seconds is None or seconds < wait_seconds:
+            if (
+                wait_seconds is None
+                or seconds < wait_seconds
+            ):
                 wait_seconds = seconds
 
             hours = seconds // 3600
@@ -94,25 +128,57 @@ for category in account.categories:
     time.sleep(2)
 
 
+# ─────────────────────────────
+# Время следующего поднятия
+# ─────────────────────────────
+
 if wait_seconds is not None:
 
     hours = wait_seconds // 3600
     minutes = (wait_seconds % 3600) // 60
 
-    wait_text = f"{hours} ч. {minutes} мин."
+    if hours > 0:
+        next_raise = f"через {hours} ч. {minutes} мин."
+    else:
+        next_raise = f"через {minutes} мин."
 
 else:
 
-    wait_text = "готово"
+    next_raise = "примерно через 2 ч."
 
+
+# ─────────────────────────────
+# Статус
+# ─────────────────────────────
+
+if raised > 0:
+
+    status = "✅ Автоподнятие готово"
+
+elif wait_seconds is not None:
+
+    status = "⏳ Автоподнятие ожидает"
+
+else:
+
+    status = "⚠️ Автоподнятие не выполнено"
+
+
+# ─────────────────────────────
+# Одно сообщение в Telegram
+# ─────────────────────────────
 
 message = (
     "🤖 FunPay AutoRaise\n\n"
     f"👤 Аккаунт: {account.username}\n"
+    f"💰 Баланс: {balance} {currency}\n"
+    f"🛒 Активные продажи: {sales}\n\n"
+    f"{status}\n"
+    f"⏱️ Следующее поднятие: {next_raise}\n\n"
     f"📂 Проверено категорий: {checked}\n"
-    f"✅ Поднято: {raised}\n"
-    f"⏳ Следующее поднятие: {wait_text}"
+    f"✅ Поднято категорий: {raised}"
 )
+
 
 if errors:
 
@@ -120,6 +186,10 @@ if errors:
         f"\n⚠️ Ошибок: {len(errors)}"
     )
 
+
 telegram(message)
 
-print("🏁 Проверка завершена.", flush=True)
+print(
+    "\n🏁 Проверка завершена.",
+    flush=True
+)
