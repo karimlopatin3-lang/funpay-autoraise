@@ -1,33 +1,31 @@
 import os
-import time
+import sys
+
+print("1. Запуск программы", flush=True)
+
+golden_key = os.environ.get("FUNPAY_GOLDEN_KEY")
+
+if not golden_key:
+    print("❌ FUNPAY_GOLDEN_KEY не найден", flush=True)
+    sys.exit(1)
+
+print("2. FUNPAY_GOLDEN_KEY найден", flush=True)
+
+print("3. Загружаю FunPayAPI...", flush=True)
 
 from FunPayAPI import Account
-from FunPayAPI.common import exceptions
 
+print("4. FunPayAPI загружен", flush=True)
 
-GOLDEN_KEY = os.environ["FUNPAY_GOLDEN_KEY"]
+print("5. Создаю подключение...", flush=True)
 
-account = Account(golden_key=GOLDEN_KEY)
+account = Account(golden_key=golden_key)
+
+print("6. Получаю данные аккаунта...", flush=True)
+
 account.get()
 
-print(f"Авторизация успешна: {account.username}")
+print("7. Авторизация прошла", flush=True)
+print(f"Аккаунт: {account.username}", flush=True)
 
-for category in account.categories:
-    try:
-        account.raise_lots(category.id)
-        print(f"✅ Подняты лоты: {category.name}")
-        time.sleep(2)
-
-    except exceptions.RaiseError as e:
-        if e.wait_time:
-            print(
-                f"⏳ {category.name}: FunPay просит подождать "
-                f"{e.wait_time} сек."
-            )
-        else:
-            print(f"⚠️ Не удалось поднять: {category.name}")
-
-    except Exception as e:
-        print(f"⚠️ Ошибка в категории {category.name}: {type(e).__name__}")
-
-print("Готово.")
+print("8. Тест завершён", flush=True)
