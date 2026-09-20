@@ -24,7 +24,7 @@ jobs:
           pip install requests beautifulsoup4 lxml requests-toolbelt
 
       - name: Get Telegram Chat ID
-        env:
+        env: 
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         run: |
           python - <<'PY'
@@ -48,6 +48,7 @@ jobs:
 
       - name: Run AutoRaise
         env:
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           FUNPAY_GOLDEN_KEY: ${{ secrets.FUNPAY_GOLDEN_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         run: |
