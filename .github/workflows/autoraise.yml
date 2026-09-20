@@ -23,10 +23,43 @@ jobs:
           git clone --depth 1 https://github.com/MorikTV/FunPayAPI.git
           pip install requests beautifulsoup4 lxml requests-toolbelt
 
+      - name: Get Telegram Chat ID
+        id: telegram
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os
+          import requests
+
+          token = os.environ["TELEGRAM_TOKEN"]
+
+          data = requests.get(
+              f"https://api.telegram.org/bot{token}/getUpdates",
+              timeout=15
+          ).json()
+
+          chat_id = None
+
+          for update in data.get("result", []):
+              message = update.get("message", {})
+              chat = message.get("chat", {})
+              if chat.get("id"):
+                  chat_id = chat["id"]
+
+          if chat_id:
+              print(f"TELEGRAM_CHAT_ID={chat_id}")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                  f.write(f"chat_id={chat_id}\n")
+          else:
+              print("CHAT_ID не найден")
+          PY
+
       - name: Run AutoRaise
         env:
           FUNPAY_GOLDEN_KEY: ${{ secrets.FUNPAY_GOLDEN_KEY }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ steps.telegram.outputs.chat_id }}
         run: |
           python main.py
 
